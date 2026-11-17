@@ -31,81 +31,97 @@ By bridging the bartender droid's conversational brain with a lightweight physic
 
 ## 2. Key Architectural Innovations / 技術的特徴（設計構想）
 
-1. **Ultra-Lightweight Edge Execution (No PyTorch / No Unity Required)**
-   * Designed to run entirely offline on an **Android Tablet (Termux + Python + NumPy)**.
-   * Instead of heavy diffusion models or giant Transformers, it uses an ensemble of **Tiny MLPs (< 3KB each)** generated offline via behavior-space Tabu Search, blended smoothly by a continuous **Emotion/Temperament Vector (\(\mathbf{e}_t\))**.
-   * **超軽量エッジ完結**：重い深層学習フレームワークや3Dゲームエンジンを使わず、Androidタブレット（Termux上の純粋なPython＋NumPy）のみでミリ秒単位の推論・制御を行う設計です。
+This project is a challenge as a hobbyist robot developer to create an autonomous bipedal robot with environmental adaptation and emotional expression using only millisecond inference on an Android device (Python + NumPy on Termux), without relying on expensive GPUs or massive Deep Reinforcement Learning (DRL) models. 
+It implements a 3-layer structure ("Brain for overall policy", "Nerves for local anomaly management", and "Muscles for execution") into a lightweight mathematical model, eliminating heavy matrix computations.
 
-2. **Dual Tabu Potential Field (Human Feedback + Fatal Fall Memory)**
-   * **Soft Tabu (\(\mathcal{H}_{\text{human}}\)):** Triggered when a human frowns or says *"That's weird!"* (`それ変ダヨ`). The robot smoothly shifts its walking style (e.g., from bold strides to polite, cautious steps) via potential field repulsion.
-   * **Permanent Fatal Tabu (\(\mathcal{H}_{\text{fatal}}\)):** If the robot actually falls, the temperament state that caused the fall is permanently saved (`fatal_tabu.npy`), ensuring the robot never repeats the same physical mistake on that floor surface.
-   * **二重タブーポテンシャル場**：「人間からのダメ出し（一時タブー）」と「実際の転倒原因（永久タブー）」の2種類の斥力により、人間の好みに空気を合わせつつ、物理的に転倒する危険領域を永久に回避する数理モデルです。
+本プロジェクトは、高価なGPUや巨大な深層強化学習（DRL）モデルに頼らず、Android端末（Termux上のPython + NumPy）のみのミリ秒推論で、環境適応と感情表現を持つ2足歩行ロボットを作るというホビーロボット開発者としての挑戦です。
+「全体の方針を決める脳」「局所的な異常を管理する神経」「運動を実行する筋肉」の3層構造を、重い行列計算を排した軽量な数式モデルに落とし込んでいます。
+---
 
-3. **Low-Cost Night Vision Stereo & Expressive Body (`Tapo C200 × 2`)**
-   * Plans to use two inexpensive consumer pan-tilt cameras (**TP-Link Tapo C200**) over local RTSP (`stream2`) for **stereo disparity 3D distance measurement**, object recognition, and **850nm IR night vision** for dark streets.
-   * Plans to use the cameras' built-in pan/tilt motors (via ONVIF) for physical emotional expression (nodding happily, shaking head in confusion).
-   * **市販カメラ2台による立体視・赤外線暗視・感情表現**：安価な見守りカメラ（Tapo C200）を2台並べることで、3D距離計測、深夜の赤外線暗視、さらにカメラ自体の首振り（うなずき・首振り）による感情表現を低予算で実現する計画です。
+## 🧠 1. Brain: Temperament Vector Update (Dual Tabu Potential Field)
+**【脳】気質ベクトルの更新（Dual Tabu Potential Field）**
+
+The overall "emotion/temperament vector $\mathbf{e}_t$" is updated every step by the resultant force of attraction to a goal and repulsion from past failure memories (two types of taboos).
+ロボット全体の「感情・気質ベクトル $\mathbf{e}_t$」は、目標への引力と、過去の失敗記憶からの斥力（2種類のタブー）の合力によって毎ステップ更新されます。
+
+$$ \mathbf{e}_{t+1} = \mathbf{e}_{t} - \alpha \nabla_{\mathbf{e}} \left( U_{\text{goal}}(\mathbf{e}_{t}) + U_{\text{human}}(\mathbf{e}_{t}) + U_{\text{fatal}}(\mathbf{e}_{t}) \right) $$
+
+**① Attraction to the goal (Quadratic potential) / 目標への引力（2次ポテンシャル）**
+A spring-like force pulling back to the ideal temperament $\mathbf{e}_{\text{target}}$.
+理想的な気質 $\mathbf{e}_{\text{target}}$ へ引き戻すバネの力。
+$$ U_{\text{goal}}(\mathbf{e}_{t}) = \frac{1}{2} k_{\text{goal}} \|\mathbf{e}_{t} - \mathbf{e}_{\text{target}}\|^2 $$
+
+**② Repulsion from Soft Taboo (Time-decaying Gaussian) / 一時タブーからの斥力（時間減衰ガウス関数）**
+Force to keep away from "soft failure memories $\mathcal{H}_{\text{human}}$" like being scolded by humans. Decays over time.
+人間に怒られた等の「ソフトな失敗記憶 $\mathcal{H}_{\text{human}}$」から遠ざける力。時間経過で忘却します。
+$$ U_{\text{human}}(\mathbf{e}_{t}) = \sum_{j \in \mathcal{H}_{\text{human}}} A_{\text{soft}} e^{-\gamma (t - t_j)} \exp\left( -\frac{\|\mathbf{e}_{t} - \mathbf{e}_j\|^2}{2\sigma_{\text{soft}}^2} \right) $$
+
+**③ Repulsion from Fatal Taboo (Permanent Gaussian) / 永久タブーからの斥力（永続ガウス関数）**
+Absolute barrier against "fatal failure memories $\mathcal{H}_{\text{fatal}}$" like falling over. Does not decay.
+転倒などの「致命的な失敗記憶 $\mathcal{H}_{\text{fatal}}$」に対する絶対障壁。減衰しません。
+$$ U_{\text{fatal}}(\mathbf{e}_{t}) = \sum_{k \in \mathcal{H}_{\text{fatal}}} A_{\text{fatal}} \exp\left( -\frac{\|\mathbf{e}_{t} - \mathbf{e}_k\|^2}{2\sigma_{\text{fatal}}^2} \right) $$
 
 ---
 
-## 3. System Architecture / システム全体構成
+## 🧬 2. Brain Plasticity: Dynamic Adaptation via Meta-Tabu Search
+**【脳の可塑性】メタ・タブーサーチによる動的適応**
 
-```text
-┌─────────────────────────────────────────────────────────────┐
-│ [Layer 1: Conversational Brain] (Existing Bartender Droid)  │
-│  Gemma 2B (Domain Classification) + Eliza Dict & Tabu Search│
-└──────────────────────────────┬──────────────────────────────┘
-                               │ Domain & Dialog Tabu (UDP 5001)
-┌──────────────────────────────▼──────────────────────────────┐
-│ [Layer 2: Locomotion & Emotion AI] (Termux Python + NumPy)  │
-│  ・TinyMLP Gait Ensemble (Curve Walking & Stand-up)         │
-│  ・Dual Tabu Potential Field (Human NG & Fatal Fall Memory) │
-└───────▲──────────────────────────────────────────────┬──────┘
-        │ 3D Dist / Object / Face NG (UDP 5001)        │ 7-DOF Joints (UDP 5002)
-┌───────┴──────────────────────┐ ┌─────────────────────▼──────┐
-│ [Vision: Dual Tapo C200]     │ │ [Layer 3: Robot OS / MCU]  │
-│  ・IR Night Stereo Distance  │ │  ・1000Hz IMU Safety Filter│
-│  ・Pan/Tilt Emotion Express  │ │  ・Emergency Limp & Standup│
-└──────────────────────────────┘ └────────────────────────────┘
-```
+Detects "local optima (stuck state)" surrounded by taboo repulsions and autonomously rewrites parameters to escape.
+タブーの斥力に囲まれて身動きが取れない「局所解（スタック）」を検知し、自律的にパラメータを書き換えて脱出します。
+
+**Stuck detection / スタック検知:** 
+Determines if the variance of temperament movement falls below a threshold $\epsilon$.
+気質の移動量（分散）が閾値 $\epsilon$ を下回ったか判定。
+$$ \text{Stuck}(t) = \begin{cases} 1 & \text{if } \text{Var}(\mathbf{e}_{t-\tau:t}) < \epsilon \\ 0 & \text{otherwise} \end{cases} $$
+
+**Dynamic relaxation example / 動的緩和の例:** 
+When stuck, it accelerates the forgetting of soft taboos.
+スタック時は、一時タブーの忘却を加速させます。
+$$ \gamma(t) = \gamma_{\text{base}} + \Delta \gamma \cdot \text{Stuck}(t) $$
 
 ---
 
-## 4. Planned Modules & Prototype Blueprints / 実装予定のモジュール構成
+## ⚡ 3. Local Nerves: Joint-Space Potential and Dynamic Masking
+**【局所神経】関節空間ポテンシャルと動的マスキング**
 
-* `train_system.py` *(Draft/Planned)* — Offline Tabu Search generator for diverse curved-walking gaits and autonomous stand-up policies (`*.npz`). / 多様なカーブ歩行気質と自律起き上がり戦略を事前生成する学習スクリプト（設計・実装予定）。
-* `return_home_brain.py` *(Draft/Planned)* — Main 50Hz Termux control loop integrating dialog signals, vision packets, and dual-tabu emotion updates. / 対話・視覚・OSフィードバックを統合するメイン歩行脳スクリプト（設計・実装予定）。
-* `virtual_town_os.py` *(Draft/Planned)* — Standalone PC 2D simulator (`Tkinter`) to test dark/slippery streets, passersby giving directions, safety overrides, and fall recovery before real-world testing. / 実機テスト前にPC上で街並み・通行人・転倒復帰を検証するための模擬ロボットOSシミュレータ（設計・実装予定）。
-* `tapo_stereo_vision.py` *(Draft/Planned)* — Dual Tapo C200 RTSP stereo distance estimator, face/emotion detector, and ONVIF pan/tilt gesture controller. / Tapo C200（2台）によるステレオ測距・顔認識・首振り感情表現スクリプト（設計・実装予定）。
+Instead of blindly executing the overall temperament command, it evaluates the state of each joint (overheating, failure, etc.) and dynamically filters the policy weights for each joint.
+全体の気質命令をそのまま実行するのではなく、関節ごとの状態（過熱、故障など）を評価し、関節ごとにポリシーの重み付けを動的にフィルタリングします。
 
----
+**Local potential $\mathbf{p}_t$ and weight redistribution / 局所ポテンシャル $\mathbf{p}_t$ と重みの再配分:**
+When the danger level of joint $j$ increases, the weight of aggressive policies is forced to zero, applying the weight of a safe policy (relaxation or locking) $\delta_{i, \text{safe}}$.
+関節 $j$ の危険度（温度やエラー値）が高まった場合、アグレッシブなポリシーの重みを強制的にゼロにし、安全なポリシー（脱力や固定）の重み $\delta_{i, \text{safe}}$ を適用します。
 
-## 5. Planned Workflow & Simulation Test / 今後の実装・検証ステップ
+$$ w_{i,j}(\mathbf{e}_{t}, p_{j,t}) = \text{Softmax}(\mathbf{e}_{t})_{i} \times (1 - \text{Mask}(p_{j,t})) + \delta_{i, \text{safe}} \times \text{Mask}(p_{j,t}) $$
 
-Once the initial prototype scripts are implemented, testing is planned on a PC in the following sequence:
-これから実装を進めるにあたり、まずはPC上の仮想環境で以下の手順による検証を予定しています。
-
-```bash
-# 1. Install minimal dependencies / 最小依存パッケージの導入
-pip install numpy opencv-python onvif-zeep
-
-# 2. Generate diverse walking & stand-up policies via Tabu Search / タブーサーチで気質モデルを生成
-python train_system.py
-
-# 3. Launch the Virtual Town & Robot OS Simulator (Terminal 1) / 仮想街並みOSを起動
-python virtual_town_os.py
-
-# 4. Launch the Emotion-Tabu Walking Brain (Terminal 2) / 歩行脳を起動
-python return_home_brain.py
-```
-
-### Planned Interactive Test Keys / シミュレータで予定している検証操作
-* `[SPACE]` : Simulate a passerby making a *"That's weird!"* (NG) face (triggers Soft Tabu). / 通行人の「それ変ダヨ！」顔を模擬入力（一時タブー追加）
-* `[F]` : Force a fall to test emergency limp, `fatal_tabu.npy` recording, and autonomous stand-up. / 強制転倒テスト（永久タブーの記録と自律起き上がりの検証）
-* `[Left / Right Arrow]` : Simulate conversational direction guidance from the bartender droid. / 会話エンジンからの左右方向指示を模擬送信
+This naturally manifests compensatory movements (e.g., "limping on the right leg because the right knee is hot") without post-learning.
+これにより、「右膝が熱いので右足だけかばって歩く（代償動作）」が事後学習なしで自然発現します。
 
 ---
 
+## 🦾 4. Muscles: Execution of TinyMLP Ensemble
+**【筋肉】TinyMLPアンサンブルの実行**
+
+The final joint command $\mathbf{u}_t$ is output by blending pre-trained ultra-lightweight policies $\pi_i$ with the "weight vector for each joint $\mathbf{w}_i$" using element-wise multiplication (Hadamard product $\circ$).
+最終的な関節指令 $\mathbf{u}_t$ は、事前学習済みの超軽量ポリシー $\pi_i$ に対し、「関節ごとの重みベクトル $\mathbf{w}_i$」を要素ごとの掛け算（アダマール積 $\circ$）でブレンドして出力します。
+
+$$ \mathbf{u}_{t} = \sum_{i=1}^{N} \left( \mathbf{w}_{i}(\mathbf{e}_{t}, \mathbf{p}_{t}) \circ \pi_{i}(\mathbf{s}_{t}) \right) $$
+
+---
+
+## 💡 Pros / プロジェクトの強み
+* **Overwhelming Edge Performance / 圧倒的なエッジ動作:** No expensive GPUs/AI chips needed. Math-based potential fields and simple matrix ops enable millisecond autonomous control on smartphone CPUs. (高価なGPUやAIチップは不要。数式ベースのポテンシャル場と単純な行列演算により、スマホのCPU環境でもミリ秒単位の自律制御が可能です。)
+* **Instant Learning without Catastrophic Forgetting / 破滅的忘却のない即時学習:** Memories like "falling" or "scolded" are added as potential repulsions, instantly reflecting safe behaviors without breaking original walking abilities. (「転んだ」「怒られた」という記憶をポテンシャルの斥力として後乗せするため、元の歩行能力を壊すことなく、1秒前の失敗を二度と繰り返さない安全行動を即時反映できます。)
+* **Natural Emergence of Compensatory Movements / 代償動作の自然発現:** Joint-by-joint potential control allows switching only overheated/failed parts to safe policies, realizing "limping/protecting pain" without branch programming. (関節ごとのポテンシャル制御により、故障や過熱を検知した部位だけを安全ポリシーに切り替える「痛みをかばう歩き方」がプログラムの分岐なしで実現します。)
+
+## ⚠️ Open Issues & Cons / 理論の穴・今後の課題
+This model is a conceptual personal project, and the following unresolved issues (weaknesses) exist for real-world deployment. (本モデルは個人開発のコンセプトであり、実機投入には以下の未解決課題が存在します。)
+
+1. **Ignoring ZMP (Zero Moment Point) & Fall Risk / ZMPの無視と転倒リスク**
+   Sudden compensatory movements blend perfectly in math but cause rapid center-of-gravity shifts in physics. If the robot's high-frequency PID control cannot absorb this, the policy change itself may cause a fall. (関節ポテンシャルで急にかばう動作をした際、数式上は綺麗にブレンドされますが、物理世界では急激な重心移動が発生します。ロボット側のPID制御で吸収しきれない場合、転倒する危険があります。)
+2. **Hyperparameter Tuning Swamp / パラメータチューニングの沼**
+   Many heuristic parameters exist (e.g., attraction gain). Though meta-tabu search self-relaxes them, wrong initial values can cause the robot to micro-vibrate (chatter). (ポテンシャルの引力ゲインなど、ヒューリスティックに設定すべきパラメータが多く存在します。初期値の設定を誤るとロボットが微振動を起こし使い物になりません。)
+3. **Taboo Memory Bloat (Curse of Dimensionality) / タブーメモリの肥大化**
+   Accumulating permanent taboos infinitely increases the Gaussian functions to compute, eventually breaking the inference speed limit. Logic to merge/compress old memories (e.g., Gaussian Mixture Models) is needed. (永久タブーが蓄積しすぎると、計算するべきガウス関数が無限に増え、やがて推論速度の制約を破綻させます。古い記憶を統合・圧縮するロジックが将来的に必要です。)
 ## 6. About the Author / 作者について
 
 **EN:**
