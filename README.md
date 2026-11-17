@@ -177,7 +177,9 @@ Project Status / プロジェクトの位置づけについて
 EN: This repository is a Concept Proposal and Architectural Design (Pre-Implementation / Planning Phase). While the mathematical formulation and initial draft designs for a 2D simulation have been outlined, actual implementation and testing are upcoming steps. I would be very happy if you find this idea interesting!
 
 JA: 本リポジトリは、現在進行形の**コンセプト提案（ジャストアイデア）およびアーキテクチャ設計段階（これから実装・検証を進めるフェーズ）**です。数理モデルやPC上の2Dシミュレーションに向けた設計メモは用意していますが、実際の実装・動作確認はこれから取り組む段階です。このアイデアに少しでも興味を持っていただけたら嬉しいです。
+## Source Code
 
+```python
 ==============================================================================
 Emotion-Tabu Edge Biped: 脳・神経・筋肉 完全統合アーキテクチャ
 (対話・歩幅学習・ビビリ防衛・安全時詳細識別 網羅版) + 動的バイアス実装
