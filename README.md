@@ -170,14 +170,69 @@ $$ \mathbf{u}_{t} = \sum_{i=1}^{N} \left( \mathbf{w}_{i}(\mathbf{e}_{t}, \mathbf
 * **Ignoring ZMP & Fall Risk:** Sudden evasive or compensatory movements blend perfectly in math but cause rapid center-of-gravity shifts. If the lower-level hardware (PID/ZMP control) cannot absorb this, the policy shift may trigger a fall.
 * **Dependence on Heuristic Parameters:** The system relies on manually tuned parameters. Incorrect initial values out of sync with physical traits can cause micro-vibrations (chattering).
 * **Taboo Memory Consolidation:** While a hard limit prevents inference crashes, simply discarding old memories is suboptimal. Future updates require a mechanism (e.g., Gaussian Mixture Models) to spatially merge and compress old, adjacent memory points.
+# 📝Another Concept Note: Tanden-Centric Motion Primitives (丹田原点・球座標による運動プリミティブ設計論)
+
+## 1. Core Concept (概要)
+In human and robot body control, we abandon the brutal-force approach of heavily computing world coordinates and complex inverse kinematics (IK). Instead, we establish **the "Tanden" (Center of Mass/Gravity Core) as the sole origin (spherical coordinate system)**, subordinating terminal links as geometric constraints (adjustment of discrepancies). This architecture achieves ultra-lightweight and smooth motion.
+
+人間やロボットの身体制御において、世界座標や複雑な逆運動学（IK）の計算をゴリゴリ解くアプローチを捨て、**「丹田（重心）」を唯一の原点（球座標系）**に据え、末端のリンクを幾何学的な制約（辻褄合わせ）として従属させることで、超軽量かつ滑らかな動作を実現するアーキテクチャ。
 
 ---
-"""
-Project Status / プロジェクトの位置づけについて
-EN: This repository is a Concept Proposal and Architectural Design (Pre-Implementation / Planning Phase). While the mathematical formulation and initial draft designs for a 2D simulation have been outlined, actual implementation and testing are upcoming steps. I would be very happy if you find this idea interesting!
 
-JA: 本リポジトリは、現在進行形の**コンセプト提案（ジャストアイデア）およびアーキテクチャ設計段階（これから実装・検証を進めるフェーズ）**です。数理モデルやPC上の2Dシミュレーションに向けた設計メモは用意していますが、実際の実装・動作確認はこれから取り組む段階です。このアイデアに少しでも興味を持っていただけたら嬉しいです。
-## Source Code
+## 2. Architectural Pillars (三大原則)
+
+1. **The Command Tower is "Tanden Spherical Coordinates" and "Movement Intent"**
+   - Spatial awareness is entirely handled via polar coordinates $(R, \Theta, \Phi)$ centered on the Tanden.
+   - The source of movement is solely abstract parameters: global "movement speed" and "stride/reach" (expansion range on the spherical surface).
+   - **司令塔は「丹田の球座標」と「移動の意図」**
+     - 空間の把握はすべて丹田を中心とした極座標 $(R, \Theta, \Phi)$ で行う。
+     - 動きの源泉は、グローバルな「移動速度」と「歩幅（球面上の展開範囲）」の抽象パラメータのみ。
+2. **Terminal Links are "Merely Geometric Constraints"**
+   - Joints like shoulders, elbows, and wrists are just mathematical adjustments (such as the law of cosines) to match oneself to the target position.
+   - Instead of forcing AI or microcontrollers to compute heavy IK, formulas handle the heavy lifting.
+   - **末端のリンクは「ただの幾何学的制約」**
+     - 肩・肘・手首などの関節は、ターゲットの位置に自分を合わせるための数式（余弦定理など）の辻褄合わせにすぎない。
+     - 複雑なIKをAIやマイコンに全計算させず、数式に肩代わりさせる。
+3. **Muddy Physics is Delegated to "Hardware Feedback"**
+   - Without self-simulating gravity, inertia, or ground reaction force (GRF), we incorporate feedback from hardware sensors (power, acceleration, load) as proprioception.
+   - **泥臭い物理は「実機のフィードバック」に委ねる**
+     - 重力、慣性、地面からの反力（GRF）を自前でシミュレートせず、実機センサー（電力・加速度・負荷）からのフィードバックを体性感覚として取り込む。
+
+---
+
+## 3. Math & Logic (計算モデルの骨子)
+
+- **Target and Link Interlocking (ターゲットとリンクの連動):**
+  - Target end-effector position from Tanden origin / 丹田原点の手先目標：$\mathbf{P} = (R \cos\Theta, R \sin\Theta)$
+  - For linear distance $D$ derived from the offset between Tanden and shoulder, the elbow angle $\beta$ is uniquely determined by the law of cosines:
+    $$\cos(\beta) = \frac{L_1^2 + D^2 - L_2^2}{2 L_1 D}$$
+- **Lightweight Self-Collision Check (軽量な自己衝突チェック):**
+  - Without heavy polygon collision checks, collisions are instantaneously prevented using **"radius $r$ thresholds (inner zones)"** and **"azimuth $\Theta$ exclusion masks (inequalities)"**.
+  - 重いポリゴン判定はせず、**「半径 $r$ の閾値（インナーゾーン）」**や**「方位角 $\Theta$ の排他マスク（不等式）」**だけで瞬時に弾く。
+
+---
+
+## 4. Division of Labor with "MLP (AI)" (「MLP（AI）」との分業体制)
+- **AI (MLP) Role / AI（MLP）の仕事:** 
+  Handles exclusively high-level decision-making (primitive selection)—such as how to alter Tanden spherical coordinate parameters, stride, and speed based on the current context ("pouring a drink," "leaning in," "supporting"). Since input dimensions are extremely small, the model becomes dramatically lightweight.
+  現在の文脈（「お酌をする」「身を寄せる」「支える」）に応じて、丹田の球座標パラメータや歩幅・速度をどう変化させるべきかという**高次な意思決定（プリミティブの選択）**のみを担当する。入力次元が極めて小さいため、モデルが劇的に軽くなる。
+- **Geometry (Formula) Role / 幾何学（数式）の仕事:** 
+  Instantly resolves link and collision-avoidance constraints toward the selected target position.
+  選ばれたターゲット位置に向かって、リンクや衝突回避の制約を瞬時に解決する。
+
+---
+
+## 5. Application Examples (アプリケーションの展開例)
+
+- **Dictionary of Everyday Etiquette (日常の作法の辞書化):**
+  - Human-like "forms" and "pauses (ma)" can be cleanly coded using combinations of a few parameters, such as Tanden hesitation (height adjustment) and radius $r$ contraction.
+  - 丹田のタメ（高さの調整）や半径 $r$ の収縮という数個のパラメータの組み合わせで、人間らしい「型」や「間（ま）」が綺麗にコード化できる。
+
+---
+> **Summary (総括):**
+> While unsuited for physical-limit acrobatics like circus tricks, this is a new paradigm for realizing **"everyday etiquette, walking, and safe mutual support"** tailored to human society using edgy, lightweight, and elegant code.
+> サーカスのような「物理限界の曲芸」には向かないが、人間社会に寄り添う**「日常の作法、歩行、安全な支え合い」**をエッジの効いた軽量かつ優美なコードで実現するための、パラダイムである。
+
 
 ```python
 ==============================================================================
@@ -532,68 +587,7 @@ def main():
 if __name__ == "__main__":
     main()
 
-# 📝Another Concept Note: Tanden-Centric Motion Primitives (丹田原点・球座標による運動プリミティブ設計論)
 
-## 1. Core Concept (概要)
-In human and robot body control, we abandon the brutal-force approach of heavily computing world coordinates and complex inverse kinematics (IK). Instead, we establish **the "Tanden" (Center of Mass/Gravity Core) as the sole origin (spherical coordinate system)**, subordinating terminal links as geometric constraints (adjustment of discrepancies). This architecture achieves ultra-lightweight and smooth motion.
-
-人間やロボットの身体制御において、世界座標や複雑な逆運動学（IK）の計算をゴリゴリ解くアプローチを捨て、**「丹田（重心）」を唯一の原点（球座標系）**に据え、末端のリンクを幾何学的な制約（辻褄合わせ）として従属させることで、超軽量かつ滑らかな動作を実現するアーキテクチャ。
-
----
-
-## 2. Architectural Pillars (三大原則)
-
-1. **The Command Tower is "Tanden Spherical Coordinates" and "Movement Intent"**
-   - Spatial awareness is entirely handled via polar coordinates $(R, \Theta, \Phi)$ centered on the Tanden.
-   - The source of movement is solely abstract parameters: global "movement speed" and "stride/reach" (expansion range on the spherical surface).
-   - **司令塔は「丹田の球座標」と「移動の意図」**
-     - 空間の把握はすべて丹田を中心とした極座標 $(R, \Theta, \Phi)$ で行う。
-     - 動きの源泉は、グローバルな「移動速度」と「歩幅（球面上の展開範囲）」の抽象パラメータのみ。
-2. **Terminal Links are "Merely Geometric Constraints"**
-   - Joints like shoulders, elbows, and wrists are just mathematical adjustments (such as the law of cosines) to match oneself to the target position.
-   - Instead of forcing AI or microcontrollers to compute heavy IK, formulas handle the heavy lifting.
-   - **末端のリンクは「ただの幾何学的制約」**
-     - 肩・肘・手首などの関節は、ターゲットの位置に自分を合わせるための数式（余弦定理など）の辻褄合わせにすぎない。
-     - 複雑なIKをAIやマイコンに全計算させず、数式に肩代わりさせる。
-3. **Muddy Physics is Delegated to "Hardware Feedback"**
-   - Without self-simulating gravity, inertia, or ground reaction force (GRF), we incorporate feedback from hardware sensors (power, acceleration, load) as proprioception.
-   - **泥臭い物理は「実機のフィードバック」に委ねる**
-     - 重力、慣性、地面からの反力（GRF）を自前でシミュレートせず、実機センサー（電力・加速度・負荷）からのフィードバックを体性感覚として取り込む。
-
----
-
-## 3. Math & Logic (計算モデルの骨子)
-
-- **Target and Link Interlocking (ターゲットとリンクの連動):**
-  - Target end-effector position from Tanden origin / 丹田原点の手先目標：$\mathbf{P} = (R \cos\Theta, R \sin\Theta)$
-  - For linear distance $D$ derived from the offset between Tanden and shoulder, the elbow angle $\beta$ is uniquely determined by the law of cosines:
-    $$\cos(\beta) = \frac{L_1^2 + D^2 - L_2^2}{2 L_1 D}$$
-- **Lightweight Self-Collision Check (軽量な自己衝突チェック):**
-  - Without heavy polygon collision checks, collisions are instantaneously prevented using **"radius $r$ thresholds (inner zones)"** and **"azimuth $\Theta$ exclusion masks (inequalities)"**.
-  - 重いポリゴン判定はせず、**「半径 $r$ の閾値（インナーゾーン）」**や**「方位角 $\Theta$ の排他マスク（不等式）」**だけで瞬時に弾く。
-
----
-
-## 4. Division of Labor with "MLP (AI)" (「MLP（AI）」との分業体制)
-- **AI (MLP) Role / AI（MLP）の仕事:** 
-  Handles exclusively high-level decision-making (primitive selection)—such as how to alter Tanden spherical coordinate parameters, stride, and speed based on the current context ("pouring a drink," "leaning in," "supporting"). Since input dimensions are extremely small, the model becomes dramatically lightweight.
-  現在の文脈（「お酌をする」「身を寄せる」「支える」）に応じて、丹田の球座標パラメータや歩幅・速度をどう変化させるべきかという**高次な意思決定（プリミティブの選択）**のみを担当する。入力次元が極めて小さいため、モデルが劇的に軽くなる。
-- **Geometry (Formula) Role / 幾何学（数式）の仕事:** 
-  Instantly resolves link and collision-avoidance constraints toward the selected target position.
-  選ばれたターゲット位置に向かって、リンクや衝突回避の制約を瞬時に解決する。
-
----
-
-## 5. Application Examples (アプリケーションの展開例)
-
-- **Dictionary of Everyday Etiquette (日常の作法の辞書化):**
-  - Human-like "forms" and "pauses (ma)" can be cleanly coded using combinations of a few parameters, such as Tanden hesitation (height adjustment) and radius $r$ contraction.
-  - 丹田のタメ（高さの調整）や半径 $r$ の収縮という数個のパラメータの組み合わせで、人間らしい「型」や「間（ま）」が綺麗にコード化できる。
-
----
-> **Summary (総括):**
-> While unsuited for physical-limit acrobatics like circus tricks, this is a new paradigm for realizing **"everyday etiquette, walking, and safe mutual support"** tailored to human society using edgy, lightweight, and elegant code.
-> サーカスのような「物理限界の曲芸」には向かないが、人間社会に寄り添う**「日常の作法、歩行、安全な支え合い」**をエッジの効いた軽量かつ優美なコードで実現するための、パラダイムである。
 
 ## License
 This project is licensed under the MIT License - see the full text below.
