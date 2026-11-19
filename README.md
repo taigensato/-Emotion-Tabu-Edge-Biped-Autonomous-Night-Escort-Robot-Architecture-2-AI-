@@ -245,7 +245,97 @@ $$ \mathbf{u}_{t} = \sum_{i=1}^{N} \left( \mathbf{w}_{i}(\mathbf{e}_{t}, \mathbf
 • すべてが連続的な三角関数と一次式で繋がっているため、「急に関節がガクッと動く」ことが絶対に起きません。
 • さらに、clip 関数が上下限を常に監視しているため、どんなに強い斥力（タブー）が発生しても、ロボットは「腰を低く落として（\(\Phi = -30^\circ\)）、安全な間合い（\(R = 0.30\text{ m}\)）で身を守る」という最も人間らしい防御ポーズに自動で収束します。
 ### Example of calculration
-Transforming the Temperament Vector ($\mathbf{e}_t$) to Tanden Spherical Coordinates ($R, \Theta, \Phi$)The transformation from the Temperament Vector ($\mathbf{e}_t$) to Tanden Spherical Coordinates ($R, \Theta, \Phi$) translates a "2D psychological/navigational vector" into a "3D physical posture."Without relying on complex matrix transformations, this approach uses only basic norm (magnitude) and atan2 (angle) formulas to directly map a robot's internal psychological state (temperament) to natural, human-like physical movements.1. Definition of Variables and Baseline ValuesFirst, define the source Temperament Vector and the baseline Tanden Spherical Coordinates.Temperament Vector $\mathbf{e}_t = (e_x, e_y)$: A 2D vector output from the potential field.$e_x$: Lateral intent (avoidance / leaning in).$e_y$: Longitudinal intent (forward drive / caution).Baseline Tanden Spherical Coordinates $(R_0, \Theta_0, \Phi_0)$: The robot's relaxed, upright neutral posture.$R_0 = 0.50\text{ m}$ (Radius): Default reach/stride distance from the Tanden (center of gravity) to the end-effectors (hands/feet).$\Theta_0 = 0^\circ$ (Azimuth Angle): Forward-facing horizontal orientation.$\Phi_0 = 0^\circ$ (Elevation Angle / Stance Depth): Baseline Tanden height (positive = upright/extended; negative = lowered hips/braced stance).2. Three Mathematical Rules for TransformationEach spherical coordinate is computed from the magnitude (momentum) and direction of $\mathbf{e}_t$ as follows:① Azimuth Angle $\Theta$ (Body Orientation / Alignment)Aligns the Tanden's orientation directly with the direction of the temperament vector:$$\Theta = \text{atan2}(e_x, e_y)$$Meaning: When forward intent ($e_y$) dominates, the robot faces straight ahead ($0^\circ$). As lateral avoidance or leaning ($e_x$) increases, the body naturally turns toward that direction.② Radius $R$ (Reach / Stride Extension)Scales the limb deployment range $R$ according to the vector's magnitude (momentum) $\Vert{}\mathbf{e}_t\Vert{} = \sqrt{e_x^2 + e_y^2}$:$$R = \text{clip}\left(R_0 + k_R \cdot \Vert{}\mathbf{e}_t\Vert{},\ R_{\min},\ R_{\max}\right)$$Parameters & Limits: Extension gain $k_R = 0.15$, minimum radius $R_{\min} = 0.30\text{ m}$ (inner-zone boundary), maximum radius $R_{\max} = 0.70\text{ m}$ (physical limb limit).Meaning: High momentum produces a wider stride/reach, while hesitation or stopping ($\Vert{}\mathbf{e}_t\Vert{} \approx 0$) naturally draws the limbs back toward the body ($0.50\text{ m}$).③ Elevation Angle $\Phi$ (Stance Depth / Center of Gravity)Determines hip height (how low the robot crouches) from longitudinal intent ($e_y$) and lateral caution/bracing ($\vert{}e_x\vert{}$):$$\Phi = \text{clip}\left(k_{\text{fwd}} \cdot e_y - k_{\text{lat}} \cdot \vert{}e_x\vert{},\ -30^\circ,\ +15^\circ\right)$$Parameters: Forward lift gain $k_{\text{fwd}} = 10^\circ$ (straightening up while walking forward), lateral drop gain $k_{\text{lat}} = 20^\circ$ (lowering the hips during lateral movement or avoidance).Meaning: Walking straight lifts the posture slightly (positive angle), whereas dodging sideways or bracing lowers the center of gravity for stability (negative angle).3. Numerical Simulations (3 Scenarios)Scenario A: Escorting smoothly straight down a night streetTemperament Vector $\mathbf{e}_t$: $(0.0,\ 1.0)$ (strong forward intent)Results:Magnitude: $\sqrt{0.0^2 + 1.0^2} = 1.0$Azimuth $\Theta$: $\text{atan2}(0.0, 1.0) = \mathbf{0^\circ}$ (facing straight ahead)Radius $R$: $0.50 + 0.15 \times 1.0 = \mathbf{0.65\text{ m}}$ (confident, wide stride)Elevation $\Phi$: $10^\circ \times 1.0 - 20^\circ \times 0.0 = \mathbf{+10^\circ}$ (lightly upright, breezy posture)Scenario B: Startled dodge to the left as a bicycle approaches from the rightTemperament Vector $\mathbf{e}_t$: $(-0.8,\ 0.2)$ (strongly pushed left by a permanent-taboo repulsive force)Results:Magnitude: $\sqrt{(-0.8)^2 + 0.2^2} \approx 0.82$Azimuth $\Theta$: $\text{atan2}(-0.8, 0.2) \approx \mathbf{-76^\circ}$ (quickly turns body diagonally left)Radius $R$: $0.50 + 0.15 \times 0.82 \approx \mathbf{0.62\text{ m}}$ (steps out to evade)Elevation $\Phi$: $10^\circ \times 0.2 - 20^\circ \times 0.8 = 2^\circ - 16^\circ = \mathbf{-14^\circ}$ (drops hips low into a braced defensive stance)Scenario C: Surrounded by obstacles and "stuck" (hesitation state)Temperament Vector $\mathbf{e}_t$: $(0.05,\ -0.05)$ (attractive and repulsive forces cancel out)Results:Magnitude: $\sqrt{0.05^2 + (-0.05)^2} \approx 0.07$Azimuth $\Theta$: $\text{atan2}(0.05, -0.05) = \mathbf{+135^\circ}$ (hesitant angle, glancing slightly back)Radius $R$: $0.50 + 0.15 \times 0.07 \approx \mathbf{0.51\text{ m}}$ (compact stance with limbs drawn close)Elevation $\Phi$: $10^\circ \times (-0.05) - 20^\circ \times 0.05 = \mathbf{-1.5^\circ}$ (halts while slightly lowering center of gravity)4. Strengths of This Transformation RuleBy routing control through these equations, a TinyMLP only needs to capture subtle nuances in $\mathbf{e}_t$ and slightly fine-tune the coefficients ($k_R, k_{\text{fwd}}, k_{\text{lat}}$).Smoothness: Because everything is linked via continuous trigonometric and linear functions, sudden jerky joint movements are eliminated.Built-in Safety: Because the clip function continuously enforces upper and lower bounds, even under extreme repulsive forces (taboos), the robot automatically converges to a natural, human-like defensive posture—lowering its hips ($\Phi = -30^\circ$) and maintaining a safe personal boundary ($R = 0.30\text{ m}$).
+## Transforming the Temperament Vector ($\mathbf{e}_t$) to Tanden Spherical Coordinates ($R, \Theta, \Phi$)
+
+The transformation from the **Temperament Vector** ($\mathbf{e}_t$) to **Tanden Spherical Coordinates** ($R, \Theta, \Phi$) translates a "2D psychological/navigational vector" into a "3D physical posture."
+
+Without relying on complex matrix transformations, this approach uses only basic norm (magnitude) and `atan2` (angle) formulas to directly map a robot's internal psychological state (temperament) to natural, human-like physical movements.
+
+---
+
+### 1. Definition of Variables and Baseline Values
+
+First, define the source **Temperament Vector** and the baseline **Tanden Spherical Coordinates**.
+
+* **Temperament Vector** $\mathbf{e}_t = (e_x, e_y)$: A 2D vector output from the potential field.
+  * $e_x$: Lateral intent (avoidance / leaning in).
+  * $e_y$: Longitudinal intent (forward drive / caution).
+* **Baseline Tanden Spherical Coordinates** $(R_0, \Theta_0, \Phi_0)$: The robot's relaxed, upright neutral posture.
+  * $R_0 = 0.50\text{ m}$ (**Radius**): Default reach/stride distance from the Tanden (center of gravity) to the end-effectors (hands/feet).
+  * $\Theta_0 = 0^\circ$ (**Azimuth Angle**): Forward-facing horizontal orientation.
+  * $\Phi_0 = 0^\circ$ (**Elevation Angle / Stance Depth**): Baseline Tanden height (positive = upright/extended; negative = lowered hips/braced stance).
+
+---
+
+### 2. Three Mathematical Rules for Transformation
+
+Each spherical coordinate is computed from the magnitude (momentum) and direction of $\mathbf{e}_t$ as follows:
+
+#### ① Azimuth Angle $\Theta$ (Body Orientation / Alignment)
+Aligns the Tanden's orientation directly with the direction of the temperament vector:
+
+$$
+\Theta = \operatorname{atan2}(e_x, e_y)
+$$
+
+* **Meaning:** When forward intent ($e_y$) dominates, the robot faces straight ahead ($0^\circ$). As lateral avoidance or leaning ($e_x$) increases, the body naturally turns toward that direction.
+
+#### ② Radius $R$ (Reach / Stride Extension)
+Scales the limb deployment range $R$ according to the vector's magnitude (momentum) $\|\mathbf{e}_t\| = \sqrt{e_x^2 + e_y^2}$:
+
+$$
+R = \operatorname{clip}\left(R_0 + k_R \cdot \|\mathbf{e}_t\|,\ R_{\min},\ R_{\max}\right)
+$$
+
+* **Parameters & Limits:** Extension gain $k_R = 0.15$, minimum radius $R_{\min} = 0.30\text{ m}$ (inner-zone boundary), maximum radius $R_{\max} = 0.70\text{ m}$ (physical limb limit).
+* **Meaning:** High momentum produces a wider stride/reach, while hesitation or stopping ($\|\mathbf{e}_t\| \approx 0$) naturally draws the limbs back toward the body ($0.50\text{ m}$).
+
+#### ③ Elevation Angle $\Phi$ (Stance Depth / Center of Gravity)
+Determines hip height (how low the robot crouches) from longitudinal intent ($e_y$) and lateral caution/bracing ($|e_x|$):
+
+$$
+\Phi = \operatorname{clip}\left(k_{\text{fwd}} \cdot e_y - k_{\text{lat}} \cdot |e_x|,\ -30^\circ,\ +15^\circ\right)
+$$
+
+* **Parameters:** Forward lift gain $k_{\text{fwd}} = 10^\circ$ (straightening up while walking forward), lateral drop gain $k_{\text{lat}} = 20^\circ$ (lowering the hips during lateral movement or avoidance).
+* **Meaning:** Walking straight lifts the posture slightly (positive angle), whereas dodging sideways or bracing lowers the center of gravity for stability (negative angle).
+
+---
+
+### 3. Numerical Simulations (3 Scenarios)
+
+#### Scenario A: Escorting smoothly straight down a night street
+* **Temperament Vector $\mathbf{e}_t$:** $(0.0,\ 1.0)$ *(strong forward intent)*
+* **Results:**
+  * **Magnitude:** $\sqrt{0.0^2 + 1.0^2} = 1.0$
+  * **Azimuth $\Theta$:** $\operatorname{atan2}(0.0, 1.0) = \mathbf{0^\circ}$ *(facing straight ahead)*
+  * **Radius $R$:** $0.50 + 0.15 \times 1.0 = \mathbf{0.65\text{ m}}$ *(confident, wide stride)*
+  * **Elevation $\Phi$:** $10^\circ \times 1.0 - 20^\circ \times 0.0 = \mathbf{+10^\circ}$ *(lightly upright, breezy posture)*
+
+#### Scenario B: Startled dodge to the left as a bicycle approaches from the right
+* **Temperament Vector $\mathbf{e}_t$:** $(-0.8,\ 0.2)$ *(strongly pushed left by a permanent-taboo repulsive force)*
+* **Results:**
+  * **Magnitude:** $\sqrt{(-0.8)^2 + 0.2^2} \approx 0.82$
+  * **Azimuth $\Theta$:** $\operatorname{atan2}(-0.8, 0.2) \approx \mathbf{-76^\circ}$ *(quickly turns body diagonally left)*
+  * **Radius $R$:** $0.50 + 0.15 \times 0.82 \approx \mathbf{0.62\text{ m}}$ *(steps out to evade)*
+  * **Elevation $\Phi$:** $10^\circ \times 0.2 - 20^\circ \times 0.8 = 2^\circ - 16^\circ = \mathbf{-14^\circ}$ *(drops hips low into a braced defensive stance)*
+
+#### Scenario C: Surrounded by obstacles and "stuck" (hesitation state)
+* **Temperament Vector $\mathbf{e}_t$:** $(0.05,\ -0.05)$ *(attractive and repulsive forces cancel out)*
+* **Results:**
+  * **Magnitude:** $\sqrt{0.05^2 + (-0.05)^2} \approx 0.07$
+  * **Azimuth $\Theta$:** $\operatorname{atan2}(0.05, -0.05) = \mathbf{+135^\circ}$ *(hesitant angle, glancing slightly back)*
+  * **Radius $R$:** $0.50 + 0.15 \times 0.07 \approx \mathbf{0.51\text{ m}}$ *(compact stance with limbs drawn close)*
+  * **Elevation $\Phi$:** $10^\circ \times (-0.05) - 20^\circ \times 0.05 = \mathbf{-1.5^\circ}$ *(halts while slightly lowering center of gravity)*
+
+---
+
+### 4. Strengths of This Transformation Rule
+
+By routing control through these equations, a `TinyMLP` only needs to capture subtle nuances in $\mathbf{e}_t$ and slightly fine-tune the coefficients ($k_R, k_{\text{fwd}}, k_{\text{lat}}$).
+
+* **Smoothness:** Because everything is linked via continuous trigonometric and linear functions, sudden jerky joint movements are eliminated.
+* **Built-in Safety:** Because the `clip` function continuously enforces upper and lower bounds, even under extreme repulsive forces (taboos), the robot automatically converges to a natural, human-like defensive posture—lowering its hips ($\Phi = -30^\circ$) and maintaining a safe personal boundary ($R = 0.30\text{ m}$).
 # 📝Another Concept Note: Tanden-Centric Motion Primitives (丹田原点・球座標による運動プリミティブ設計論)
 
 ## 1. Core Concept (概要)
