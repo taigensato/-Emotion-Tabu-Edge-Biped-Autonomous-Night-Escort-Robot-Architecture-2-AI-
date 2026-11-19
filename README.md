@@ -857,7 +857,7 @@ This project is licensed under the MIT License - see the full text below.
 
 MIT License
 
-Copyright (c) 2026 [Your Name/Organization]
+Copyright (c) 2026 [taigensato]
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
