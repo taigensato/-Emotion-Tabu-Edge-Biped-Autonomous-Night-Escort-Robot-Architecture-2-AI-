@@ -244,7 +244,7 @@ $$ \mathbf{u}_{t} = \sum_{i=1}^{N} \left( \mathbf{w}_{i}(\mathbf{e}_{t}, \mathbf
 この数式を通すことで、TinyMLPは「\(\mathbf{e}_{t}\) の微妙なニュアンスを汲み取って、係数（\(k_R, k_{\text{fwd}}, k_{\text{lat}}\)）を少し微調整するだけ」で済みます。
 • すべてが連続的な三角関数と一次式で繋がっているため、「急に関節がガクッと動く」ことが絶対に起きません。
 • さらに、clip 関数が上下限を常に監視しているため、どんなに強い斥力（タブー）が発生しても、ロボットは「腰を低く落として（\(\Phi = -30^\circ\)）、安全な間合い（\(R = 0.30\text{ m}\)）で身を守る」という最も人間らしい防御ポーズに自動で収束します。
-### Example of calculration
+### Example of calculation
 ## Transforming the Temperament Vector ($\mathbf{e}_t$) to Tanden Spherical Coordinates ($R, \Theta, \Phi$)
 
 The transformation from the **Temperament Vector** ($\mathbf{e}_t$) to **Tanden Spherical Coordinates** ($R, \Theta, \Phi$) translates a "2D psychological/navigational vector" into a "3D physical posture."
