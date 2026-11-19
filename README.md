@@ -170,6 +170,81 @@ $$ \mathbf{u}_{t} = \sum_{i=1}^{N} \left( \mathbf{w}_{i}(\mathbf{e}_{t}, \mathbf
 * **Ignoring ZMP & Fall Risk:** Sudden evasive or compensatory movements blend perfectly in math but cause rapid center-of-gravity shifts. If the lower-level hardware (PID/ZMP control) cannot absorb this, the policy shift may trigger a fall.
 * **Dependence on Heuristic Parameters:** The system relies on manually tuned parameters. Incorrect initial values out of sync with physical traits can cause micro-vibrations (chattering).
 * **Taboo Memory Consolidation:** While a hard limit prevents inference crashes, simply discarding old memories is suboptimal. Future updates require a mechanism (e.g., Gaussian Mixture Models) to spatially merge and compress old, adjacent memory points.
+  ###計算例（わかりにくいとコメント頂いたので）
+  気質ベクトル（\(\mathbf{e}_{t}\)）から丹田の球座標（\(R, \Theta, \Phi\)）への変換は、「2次元の心理・進行ベクトル」を「3次元の身体の構え」へ翻訳するプロセスです。
+複雑な行列変換を使わず、大きさ（ノルム）と角度（atan2）の基本的な数式だけで、ロボットの「心理状態（気質）」を「人間らしい身体の所作」に直結させることができます。
+
+1. 変数と基準値の定義
+
+まず、変換の元になる「気質ベクトル」と、変換先の「丹田球座標」の基準値を設定します。
+• 気質ベクトル \(\mathbf{e}_t = (e_x, e_y)\): ポテンシャル場から出力される2次元ベクトルです。ここでは「\(e_{x}\)：左右への回避・寄り添い意識」「\(e_{y}\)：前後への前進・警戒意識」とします。
+• 丹田の基準球座標 \((R_0, \Theta_0, \Phi_0)\): ロボットがリラックスして直立している基本姿勢です。
+• \(R_0 = 0.50\text{ m}\)（半径）： 丹田から手先・足先までの基本のリーチ（間合い）。
+• \(\Theta_0 = 0^\circ\)（方位角）： 体の正面方向（水平角）。
+• \(\Phi_0 = 0^\circ\)（仰角・タメ）： 丹田の高さの基準（プラスで背筋が伸び、マイナスで腰を落として構える）。
+
+2. 変換の3つの数式ルール
+
+気質ベクトル \(\mathbf{e}_{t}\) の「勢い（大きさ）」と「向き」から、球座標の各要素を以下の数式で決定します。
+
+① 方位角 \(\Theta \)（体の向き・寄り添い角）
+
+気質ベクトルが向いている方向へ、そのまま丹田の意識（体の向き）を向けます。
+\(\Theta =\text{atan2}(e_{x},e_{y})\)
+• 意味: 前進意識（\(e_{y}\)）が強ければ正面（\(0^{\circ }\)）を向き、横への回避や寄り添い（\(e_{x}\)）が強まると、自然とそちらへ体をひねります。
+
+② 半径 \(R\)（間合い・リーチの伸縮）
+
+気質ベクトルの大きさ（勢い） \(\Vert{}\mathbf{e}_t\Vert{} = \sqrt{e_x^2 + e_y^2}\) に応じて、手足の展開範囲 \(R\) を伸縮させます。
+\(R=\text{clip}\left(R_{0}+k_{R}\cdot \|{}\mathbf{e}_{t}\|{},\ R_{\min },\ R_{\max }\right)\)
+• 係数と制限: \(k_R = 0.15\)（伸び率）、最小半径 \(R_{\min} = 0.30\text{ m}\)（インナーゾーンの壁）、最大半径 \(R_{\max} = 0.70\text{ m}\)（腕・脚の限界長）とします。
+• 意味: 勢いよく歩きたい時はリーチ（歩幅）が広くなり、迷って立ち止まると（\(\Vert{}\mathbf{e}_t\Vert{} \approx 0\)）、自然と手足を体に近い位置（\(0.50\text{ m}\)）へ収縮させます。
+
+③ 仰角 \(\Phi \)（丹田のタメ・腰の落とし具合）
+
+前後の意識 \(e_{y}\) と、左右の警戒・踏ん張り \(\vert{}e_x\vert{}\) から、重心の高さ（腰の落とし具合）を決めます。
+\(\Phi =\text{clip}\left(k_{\text{fwd}}\cdot e_{y}-k_{\text{lat}}\cdot |{}e_{x}|{},\ -30^{\circ },\ +15^{\circ }\right)\)
+• 係数: \(k_{\text{fwd}} = 10^\circ\)（前進時の伸び上がり）、\(k_{\text{lat}} = 20^\circ\)（横移動・回避時の腰の落とし込み）。
+• 意味: まっすぐ歩く時は少し胸を張り（プラス角）、横に避けたり踏ん張ったりする時は重心を低くして安定させます（マイナス角）。
+
+3. 具体的な数字を使ったシミュレーション（3つのシーン）
+
+上記の数式に実際の数字を入れて、ロボットがどう動くか確認します。
+
+シーンA：夜道をまっすぐ心地よくエスコート中
+
+• 気質ベクトル \(\mathbf{e}_{t}\): \((0.0,\ 1.0)\) ※正面への意欲が高い状態
+• 計算結果:
+• ベクトルの大きさ: \(\sqrt{0.0^2 + 1.0^2} = 1.0\)
+• 方位角 \(\Theta \): \(\text{atan2}(0.0, 1.0) = \mathbf{0^\circ}\)（まっすぐ正面）
+• 半径 \(R\): \(0.50 + 0.15 \times 1.0 = \mathbf{0.65\text{ m}}\)（大股で堂々とした歩幅）
+• 仰角 \(\Phi \): \(10^\circ \times 1.0 - 20^\circ \times 0.0 = \mathbf{+10^\circ}\)（少し背筋を伸ばした軽快な姿勢）
+
+シーンB：右側から自転車が接近し、左へ「ビビリ回避」した瞬間
+
+• 気質ベクトル \(\mathbf{e}_{t}\): \((-0.8,\ 0.2)\) ※永久タブーの斥力で左（マイナス）へ強く押された状態
+• 計算結果:
+• ベクトルの大きさ: \(\sqrt{(-0.8)^2 + 0.2^2} \approx 0.82\)
+• 方位角 \(\Theta \): \(\text{atan2}(-0.8, 0.2) \approx \mathbf{-76^\circ}\)（左斜め方向へサッと体を向ける）
+• 半径 \(R\): \(0.50 + 0.15 \times 0.82 \approx \mathbf{0.62\text{ m}}\)（回避のために足を踏み出す）
+• 仰角 \(\Phi \): \(10^\circ \times 0.2 - 20^\circ \times 0.8 = 2^\circ - 16^\circ = \mathbf{-14^\circ}\)（腰をグッと落として踏ん張る防衛姿勢）
+
+シーンC：障害物に囲まれて「スタック（迷い）」状態になった時
+
+• 気質ベクトル \(\mathbf{e}_{t}\): \((0.05,\ -0.05)\) ※引力と斥力が釣り合い、動けなくなった状態
+• 計算結果:
+• ベクトルの大きさ: \(\sqrt{0.05^2 + (-0.05)^2} \approx 0.07\)
+• 方位角 \(\Theta \): \(\text{atan2}(0.05, -0.05) = \mathbf{+135^\circ}\)（少し後ろを振り返るような迷いの向き）
+• 半径 \(R\): \(0.50 + 0.15 \times 0.07 \approx \mathbf{0.51\text{ m}}\)（手足を体元に引き寄せた控えめな構え）
+• 仰角 \(\Phi \): \(10^\circ \times (-0.05) - 20^\circ \times 0.05 = \mathbf{-1.5^\circ}\)（わずかに重心を落として立ち止まる）
+
+4. この変換ルールの強み
+
+この数式を通すことで、TinyMLPは「\(\mathbf{e}_{t}\) の微妙なニュアンスを汲み取って、係数（\(k_R, k_{\text{fwd}}, k_{\text{lat}}\)）を少し微調整するだけ」で済みます。
+• すべてが連続的な三角関数と一次式で繋がっているため、「急に関節がガクッと動く」ことが絶対に起きません。
+• さらに、clip 関数が上下限を常に監視しているため、どんなに強い斥力（タブー）が発生しても、ロボットは「腰を低く落として（\(\Phi = -30^\circ\)）、安全な間合い（\(R = 0.30\text{ m}\)）で身を守る」という最も人間らしい防御ポーズに自動で収束します。
+### Example of calculration
+Transforming the Temperament Vector ($\mathbf{e}_t$) to Tanden Spherical Coordinates ($R, \Theta, \Phi$)The transformation from the Temperament Vector ($\mathbf{e}_t$) to Tanden Spherical Coordinates ($R, \Theta, \Phi$) translates a "2D psychological/navigational vector" into a "3D physical posture."Without relying on complex matrix transformations, this approach uses only basic norm (magnitude) and atan2 (angle) formulas to directly map a robot's internal psychological state (temperament) to natural, human-like physical movements.1. Definition of Variables and Baseline ValuesFirst, define the source Temperament Vector and the baseline Tanden Spherical Coordinates.Temperament Vector $\mathbf{e}_t = (e_x, e_y)$: A 2D vector output from the potential field.$e_x$: Lateral intent (avoidance / leaning in).$e_y$: Longitudinal intent (forward drive / caution).Baseline Tanden Spherical Coordinates $(R_0, \Theta_0, \Phi_0)$: The robot's relaxed, upright neutral posture.$R_0 = 0.50\text{ m}$ (Radius): Default reach/stride distance from the Tanden (center of gravity) to the end-effectors (hands/feet).$\Theta_0 = 0^\circ$ (Azimuth Angle): Forward-facing horizontal orientation.$\Phi_0 = 0^\circ$ (Elevation Angle / Stance Depth): Baseline Tanden height (positive = upright/extended; negative = lowered hips/braced stance).2. Three Mathematical Rules for TransformationEach spherical coordinate is computed from the magnitude (momentum) and direction of $\mathbf{e}_t$ as follows:① Azimuth Angle $\Theta$ (Body Orientation / Alignment)Aligns the Tanden's orientation directly with the direction of the temperament vector:$$\Theta = \text{atan2}(e_x, e_y)$$Meaning: When forward intent ($e_y$) dominates, the robot faces straight ahead ($0^\circ$). As lateral avoidance or leaning ($e_x$) increases, the body naturally turns toward that direction.② Radius $R$ (Reach / Stride Extension)Scales the limb deployment range $R$ according to the vector's magnitude (momentum) $\Vert{}\mathbf{e}_t\Vert{} = \sqrt{e_x^2 + e_y^2}$:$$R = \text{clip}\left(R_0 + k_R \cdot \Vert{}\mathbf{e}_t\Vert{},\ R_{\min},\ R_{\max}\right)$$Parameters & Limits: Extension gain $k_R = 0.15$, minimum radius $R_{\min} = 0.30\text{ m}$ (inner-zone boundary), maximum radius $R_{\max} = 0.70\text{ m}$ (physical limb limit).Meaning: High momentum produces a wider stride/reach, while hesitation or stopping ($\Vert{}\mathbf{e}_t\Vert{} \approx 0$) naturally draws the limbs back toward the body ($0.50\text{ m}$).③ Elevation Angle $\Phi$ (Stance Depth / Center of Gravity)Determines hip height (how low the robot crouches) from longitudinal intent ($e_y$) and lateral caution/bracing ($\vert{}e_x\vert{}$):$$\Phi = \text{clip}\left(k_{\text{fwd}} \cdot e_y - k_{\text{lat}} \cdot \vert{}e_x\vert{},\ -30^\circ,\ +15^\circ\right)$$Parameters: Forward lift gain $k_{\text{fwd}} = 10^\circ$ (straightening up while walking forward), lateral drop gain $k_{\text{lat}} = 20^\circ$ (lowering the hips during lateral movement or avoidance).Meaning: Walking straight lifts the posture slightly (positive angle), whereas dodging sideways or bracing lowers the center of gravity for stability (negative angle).3. Numerical Simulations (3 Scenarios)Scenario A: Escorting smoothly straight down a night streetTemperament Vector $\mathbf{e}_t$: $(0.0,\ 1.0)$ (strong forward intent)Results:Magnitude: $\sqrt{0.0^2 + 1.0^2} = 1.0$Azimuth $\Theta$: $\text{atan2}(0.0, 1.0) = \mathbf{0^\circ}$ (facing straight ahead)Radius $R$: $0.50 + 0.15 \times 1.0 = \mathbf{0.65\text{ m}}$ (confident, wide stride)Elevation $\Phi$: $10^\circ \times 1.0 - 20^\circ \times 0.0 = \mathbf{+10^\circ}$ (lightly upright, breezy posture)Scenario B: Startled dodge to the left as a bicycle approaches from the rightTemperament Vector $\mathbf{e}_t$: $(-0.8,\ 0.2)$ (strongly pushed left by a permanent-taboo repulsive force)Results:Magnitude: $\sqrt{(-0.8)^2 + 0.2^2} \approx 0.82$Azimuth $\Theta$: $\text{atan2}(-0.8, 0.2) \approx \mathbf{-76^\circ}$ (quickly turns body diagonally left)Radius $R$: $0.50 + 0.15 \times 0.82 \approx \mathbf{0.62\text{ m}}$ (steps out to evade)Elevation $\Phi$: $10^\circ \times 0.2 - 20^\circ \times 0.8 = 2^\circ - 16^\circ = \mathbf{-14^\circ}$ (drops hips low into a braced defensive stance)Scenario C: Surrounded by obstacles and "stuck" (hesitation state)Temperament Vector $\mathbf{e}_t$: $(0.05,\ -0.05)$ (attractive and repulsive forces cancel out)Results:Magnitude: $\sqrt{0.05^2 + (-0.05)^2} \approx 0.07$Azimuth $\Theta$: $\text{atan2}(0.05, -0.05) = \mathbf{+135^\circ}$ (hesitant angle, glancing slightly back)Radius $R$: $0.50 + 0.15 \times 0.07 \approx \mathbf{0.51\text{ m}}$ (compact stance with limbs drawn close)Elevation $\Phi$: $10^\circ \times (-0.05) - 20^\circ \times 0.05 = \mathbf{-1.5^\circ}$ (halts while slightly lowering center of gravity)4. Strengths of This Transformation RuleBy routing control through these equations, a TinyMLP only needs to capture subtle nuances in $\mathbf{e}_t$ and slightly fine-tune the coefficients ($k_R, k_{\text{fwd}}, k_{\text{lat}}$).Smoothness: Because everything is linked via continuous trigonometric and linear functions, sudden jerky joint movements are eliminated.Built-in Safety: Because the clip function continuously enforces upper and lower bounds, even under extreme repulsive forces (taboos), the robot automatically converges to a natural, human-like defensive posture—lowering its hips ($\Phi = -30^\circ$) and maintaining a safe personal boundary ($R = 0.30\text{ m}$).
 # 📝Another Concept Note: Tanden-Centric Motion Primitives (丹田原点・球座標による運動プリミティブ設計論)
 
 ## 1. Core Concept (概要)
