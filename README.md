@@ -768,7 +768,6 @@ def main():
 
 if __name__ == "__main__":
     main()
-
 ## 拡張設計：自己防衛と対人接触（抱擁）の分離マスキングモデル
 
 従来の単一マスクによる異常回避では、抱擁（ハグ）や介助などの密着動作時に、相手との接触を「衝突・怪我の予兆」と誤認して腕を引いてしまう問題がありました。
@@ -778,37 +777,38 @@ if __name__ == "__main__":
 
 ### 1. 神経（Nerves）：2層分離型・動的マスキングの数式
 
-元リポジトリの神経重み更新式（$w_{i,j}$）に対し、関節の異常度 $p_{j,t}$ に加えて、対人接触圧（優しいタッチの負荷） $c_{j,t}$ を独立した変数として導入します。
+元リポジトリの神経重み更新式（$`w_{i,j}`$）に対し、関節の異常度 $`p_{j,t}`$ に加えて、対人接触圧（優しいタッチの負荷） $`c_{j,t}`$ を独立した変数として導入します。
 
-$$
+```math
 w_{i,j}(\mathbf{e}_{t}, p_{j,t}, c_{j,t}) = \left(1 - M_{\text{injury}}(p_{j,t})\right) \left[ \mathrm{Softmax}(\mathbf{e}_{t})_{i} \cdot \left(1 - M_{\text{contact}}(c_{j,t})\right) + \delta_{i,\text{hug}} \cdot M_{\text{contact}}(c_{j,t}) \right] + \delta_{i,\text{safe}} \cdot M_{\text{injury}}(p_{j,t})
-$$
+```
 
-* **自己防衛マスク $M_{\text{injury}}(p_{j,t}) \in \{0, 1\}$（最優先・ハードリミット）:**
-  * モーターの過熱や過電流、構造上の可動限界 $p_{j,t}$ が危険閾値を超えた瞬間に $1$ となります。
-  * 他のすべての重みを強制的に $0$ にし、機器を守るための安全ポリシー $\delta_{i,\text{safe}}$（緊急脱力・退避）へ切り替えます。
-* **コンタクトマスク $M_{\text{contact}}(c_{j,t}) \in [0, 1]$（連続値・ソフトリミット）:**
-  * 機器が安全な状態（$M_{\text{injury}} = 0$）において、相手との接触圧 $c_{j,t}$ に応じて $0$ から $1$ へ滑らかに変化します。
-  * 接触を検知すると、通常の接近ポリシーから「寄り添い・追従ポリシー $\delta_{i,\text{hug}}$」へと重みを連続的にブレンドし、押し込みを防ぎます。
+* **自己防衛マスク** $`M_{\text{injury}}(p_{j,t}) \in \lbrace 0, 1 \rbrace`$（最優先・ハードリミット）:
+  * モーターの過熱や過電流、構造上の可動限界 $`p_{j,t}`$ が危険閾値を超えた瞬間に $`1`$ となります。
+  * 他のすべての重みを強制的に $`0`$ にし、機器を守るための安全ポリシー $`\delta_{i,\text{safe}}`$（緊急脱力・退避）へ切り替えます。
+* **コンタクトマスク** $`M_{\text{contact}}(c_{j,t}) \in [0, 1]`$（連続値・ソフトリミット）:
+  * 機器が安全な状態（$`M_{\text{injury}} = 0`$）において、相手との接触圧 $`c_{j,t}`$ に応じて $`0`$ から $`1`$ へ滑らかに変化します。
+  * 接触を検知すると、通常の接近ポリシーから「寄り添い・追従ポリシー $`\delta_{i,\text{hug}}`$」へと重みを連続的にブレンドし、押し込みを防ぎます。
 
 ---
 
-### 2. 丹田球座標（Tanden Spherical Coordinates）：抱擁時の目標半径 $R$ の動的補正
+### 2. 丹田球座標（Tanden Spherical Coordinates）：抱擁時の目標半径 $`R`$ の動的補正
 
-`TinyMLP` が出力する「丹田基準の目標手先半径 $R_{\text{mlp}}$」に対し、コンタクトマスクが介入して最終的な目標半径 $R_{\text{target}}$ を決定します。
+`TinyMLP` が出力する「丹田基準の目標手先半径 $`R_{\text{mlp}}`$」に対し、コンタクトマスクが介入して最終的な目標半径 $`R_{\text{target}}`$ を決定します。
 
-$$
+```math
 R_{\text{target}} = \max \left( R_{\text{inner\_min}},\; R_{\text{mlp}} - k_{\text{soft}} \cdot M_{\text{contact}}(c_{t}) \cdot (c_{t} - c_{\text{ideal}}) \right)
-$$
+```
 
 * **目標接触圧の維持（コンプライアンス制御）:**
-  * 抱擁モード時、`TinyMLP` は相手の背中側（深い位置）に $R_{\text{mlp}}$ を設定して腕を回します。
-  * 手先や腕が相手に接触し、現在の接触圧 $c_{t}$ が「心地よい目標圧力 $c_{\text{ideal}}$（例：300g〜500g相当）」を超えると、差分 $(c_t - c_{\text{ideal}})$ に応じて半径 $R_{\text{target}}$ を数ミリ単位で押し戻します。
+  * 抱擁モード時、`TinyMLP` は相手の背中側（深い位置）に $`R_{\text{mlp}}`$ を設定して腕を回します。
+  * 手先や腕が相手に接触し、現在の接触圧 $`c_{t}`$ が「心地よい目標圧力 $`c_{\text{ideal}}`$（例：300g〜500g相当）」を超えると、差分 $`(c_t - c_{\text{ideal}})`$ に応じて半径 $`R_{\text{target}}`$ を数ミリ単位で押し戻します。
 * **呼吸や揺れへの自然な追従:**
-  * 相手が息を吸って胸郭が広がれば $c_{t}$ が増えて腕がわずかに緩み、息を吐けば $c_{t}$ が減って再び優しく包み込みます。これにより、相手の体格差や呼吸に合わせた「生きた抱擁」が幾何学数式のみで実現します。
-* **自己衝突の絶対防止（$R_{\text{inner\_min}}$）:**
-  * いかなる場合も丹田のインナーゾーン閾値 $R_{\text{inner\_min}}$ より内側には入らないよう下限をクリップし、自身の胴体へのめり込みを防ぎます。
-## Extended Design: Dual-Layer Masking Model Separating Self-Defense and Interpersonal Contact (Hugging)
+  * 相手が息を吸って胸郭が広がれば $`c_{t}`$ が増えて腕がわずかに緩み、息を吐けば $`c_{t}`$ が減って再び優しく包み込みます。これにより、相手の体格差や呼吸に合わせた「生きた抱擁」が幾何学数式のみで実現します。
+* **自己衝突の絶対防止（$`R_{\text{inner\_min}}`$）:**
+  * いかなる場合も丹田のインナーゾーン閾値 $`R_{\text{inner\_min}}`$ より内側には入らないよう下限をクリップし、自身の胴体へのめり込みを防ぎます。
+ 
+  * ## Extended Design: Dual-Layer Masking Model Separating Self-Defense and Interpersonal Contact (Hugging)
 
 In conventional single-mask anomaly avoidance, close-contact interactions such as hugging or caregiving cause the robot to misinterpret human contact as a "collision or sign of injury," leading it to pull its arms away.
 To solve this, we extend the original architecture's **"2. Nerves: Dynamic Masking of Local Joints"** and **"Tanden-Origin Spherical Coordinate Model"** by separating the mask into two layers: a **Self-Defense Mask (Hard Limit)** and a **Contact Mask (Soft Limit & Compliance)**.
@@ -817,36 +817,37 @@ To solve this, we extend the original architecture's **"2. Nerves: Dynamic Maski
 
 ### 1. Nerves: Mathematical Formulation of Dual-Layer Dynamic Masking
 
-To the original repository's nerve weight update equation ($w_{i,j}$), we introduce interpersonal contact pressure (gentle touch load) $c_{j,t}$ as an independent variable alongside joint anomaly level $p_{j,t}$:
+To the original repository's nerve weight update equation ($`w_{i,j}`$), we introduce interpersonal contact pressure (gentle touch load) $`c_{j,t}`$ as an independent variable alongside joint anomaly level $`p_{j,t}`$:
 
-$$
+```math
 w_{i,j}(\mathbf{e}_{t}, p_{j,t}, c_{j,t}) = \left(1 - M_{\text{injury}}(p_{j,t})\right) \left[ \mathrm{Softmax}(\mathbf{e}_{t})_{i} \cdot \left(1 - M_{\text{contact}}(c_{j,t})\right) + \delta_{i,\text{hug}} \cdot M_{\text{contact}}(c_{j,t}) \right] + \delta_{i,\text{safe}} \cdot M_{\text{injury}}(p_{j,t})
-$$
+```
 
-* **Self-Defense Mask $M_{\text{injury}}(p_{j,t}) \in \{0, 1\}$ (Top Priority / Hard Limit):**
-  * Immediately switches to $1$ the moment motor overheating, overcurrent, or structural joint limits $p_{j,t}$ exceed the danger threshold.
-  * Forces all other weights to $0$ and switches to the hardware-protection safety policy $\delta_{i,\text{safe}}$ (emergency limp mode / retraction).
-* **Contact Mask $M_{\text{contact}}(c_{j,t}) \in [0, 1]$ (Continuous / Soft Limit):**
-  * When the hardware is in a safe state ($M_{\text{injury}} = 0$), this smoothly transitions from $0$ to $1$ according to the interpersonal contact pressure $c_{j,t}$.
-  * Upon detecting contact, it continuously blends the weights from the normal approach policy to the "hugging/compliance policy $\delta_{i,\text{hug}}$," preventing excessive pushing.
+* **Self-Defense Mask** $`M_{\text{injury}}(p_{j,t}) \in \lbrace 0, 1 \rbrace`$ (Top Priority / Hard Limit):
+  * Immediately switches to $`1`$ the moment motor overheating, overcurrent, or structural joint limits $`p_{j,t}`$ exceed the danger threshold.
+  * Forces all other weights to $`0`$ and switches to the hardware-protection safety policy $`\delta_{i,\text{safe}}`$ (emergency limp mode / retraction).
+* **Contact Mask** $`M_{\text{contact}}(c_{j,t}) \in [0, 1]`$ (Continuous / Soft Limit):
+  * When the hardware is in a safe state ($`M_{\text{injury}} = 0`$), this smoothly transitions from $`0`$ to $`1`$ according to the interpersonal contact pressure $`c_{j,t}`$.
+  * Upon detecting contact, it continuously blends the weights from the normal approach policy to the "hugging/compliance policy $`\delta_{i,\text{hug}}`$," preventing excessive pushing.
 
 ---
 
-### 2. Tanden Spherical Coordinates: Dynamic Adjustment of Target Radius $R$ During Hugging
+### 2. Tanden Spherical Coordinates: Dynamic Adjustment of Target Radius $`R`$ During Hugging
 
-The contact mask intervenes in the Tanden-referenced target end-effector radius $R_{\text{mlp}}$ output by `TinyMLP` to determine the final target radius $R_{\text{target}}$:
+The contact mask intervenes in the Tanden-referenced target end-effector radius $`R_{\text{mlp}}`$ output by `TinyMLP` to determine the final target radius $`R_{\text{target}}`$:
 
-$$
+```math
 R_{\text{target}} = \max \left( R_{\text{inner\_min}},\; R_{\text{mlp}} - k_{\text{soft}} \cdot M_{\text{contact}}(c_{t}) \cdot (c_{t} - c_{\text{ideal}}) \right)
-$$
+```
 
 * **Maintaining Target Contact Pressure (Compliance Control):**
-  * In hug mode, `TinyMLP` sets $R_{\text{mlp}}$ deep behind the partner's back to wrap its arms around them.
-  * When the hands or arms make contact and the current pressure $c_{t}$ exceeds the comfortable target pressure $c_{\text{ideal}}$ (e.g., equivalent to 300g–500g), the radius $R_{\text{target}}$ is pushed back by millimeters in proportion to the difference $(c_t - c_{\text{ideal}})$.
+  * In hug mode, `TinyMLP` sets $`R_{\text{mlp}}`$ deep behind the partner's back to wrap its arms around them.
+  * When the hands or arms make contact and the current pressure $`c_{t}`$ exceeds the comfortable target pressure $`c_{\text{ideal}}`$ (e.g., equivalent to 300g–500g), the radius $`R_{\text{target}}`$ is pushed back by millimeters in proportion to the difference $`(c_t - c_{\text{ideal}})`$.
 * **Natural Adaptation to Breathing and Swaying:**
-  * When the partner inhales and their chest expands, $c_{t}$ increases and the arms slightly loosen; when they exhale, $c_{t}$ decreases and the robot gently embraces them again. This achieves a "living hug" adapted to body size and breathing purely through geometric equations.
-* **Absolute Prevention of Self-Collision ($R_{\text{inner\_min}}$):**
-  * Under all circumstances, the lower bound is clipped at the Tanden inner-zone threshold $R_{\text{inner\_min}}$, preventing the limbs from colliding with the robot's own torso.
+  * When the partner inhales and their chest expands, $`c_{t}`$ increases and the arms slightly loosen; when they exhale, $`c_{t}`$ decreases and the robot gently embraces them again. This achieves a "living hug" adapted to body size and breathing purely through geometric equations.
+* **Absolute Prevention of Self-Collision ($`R_{\text{inner\_min}}`$):**
+  * Under all circumstances, the lower bound is clipped at the Tanden inner-zone threshold $`R_{\text{inner\_min}}`$, preventing the limbs from colliding with the robot's own torso.
+
 ## License
 This project is licensed under the MIT License - see the full text below.
 
