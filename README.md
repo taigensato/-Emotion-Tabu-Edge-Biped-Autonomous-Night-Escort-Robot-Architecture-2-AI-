@@ -275,7 +275,7 @@ Each spherical coordinate is computed from the magnitude (momentum) and directio
 Aligns the Tanden's orientation directly with the direction of the temperament vector:
 
 $$
-\Theta = \operatorname{atan2}(e_x, e_y)
+\Theta = \mathrm{atan2}(e_x, e_y)
 $$
 
 * **Meaning:** When forward intent ($e_y$) dominates, the robot faces straight ahead ($0^\circ$). As lateral avoidance or leaning ($e_x$) increases, the body naturally turns toward that direction.
@@ -284,7 +284,7 @@ $$
 Scales the limb deployment range $R$ according to the vector's magnitude (momentum) $\|\mathbf{e}_t\| = \sqrt{e_x^2 + e_y^2}$:
 
 $$
-R = \operatorname{clip}\left(R_0 + k_R \cdot \|\mathbf{e}_t\|,\ R_{\min},\ R_{\max}\right)
+R = \mathrm{clip}\left(R_0 + k_R \cdot \|\mathbf{e}_t\|,\ R_{\min},\ R_{\max}\right)
 $$
 
 * **Parameters & Limits:** Extension gain $k_R = 0.15$, minimum radius $R_{\min} = 0.30\text{ m}$ (inner-zone boundary), maximum radius $R_{\max} = 0.70\text{ m}$ (physical limb limit).
@@ -294,7 +294,7 @@ $$
 Determines hip height (how low the robot crouches) from longitudinal intent ($e_y$) and lateral caution/bracing ($|e_x|$):
 
 $$
-\Phi = \operatorname{clip}\left(k_{\text{fwd}} \cdot e_y - k_{\text{lat}} \cdot |e_x|,\ -30^\circ,\ +15^\circ\right)
+\Phi = \mathrm{clip}\left(k_{\text{fwd}} \cdot e_y - k_{\text{lat}} \cdot |e_x|,\ -30^\circ,\ +15^\circ\right)
 $$
 
 * **Parameters:** Forward lift gain $k_{\text{fwd}} = 10^\circ$ (straightening up while walking forward), lateral drop gain $k_{\text{lat}} = 20^\circ$ (lowering the hips during lateral movement or avoidance).
@@ -308,7 +308,7 @@ $$
 * **Temperament Vector $\mathbf{e}_t$:** $(0.0,\ 1.0)$ *(strong forward intent)*
 * **Results:**
   * **Magnitude:** $\sqrt{0.0^2 + 1.0^2} = 1.0$
-  * **Azimuth $\Theta$:** $\operatorname{atan2}(0.0, 1.0) = \mathbf{0^\circ}$ *(facing straight ahead)*
+  * **Azimuth $\Theta$:** $\mathrm{atan2}(0.0, 1.0) = \mathbf{0^\circ}$ *(facing straight ahead)*
   * **Radius $R$:** $0.50 + 0.15 \times 1.0 = \mathbf{0.65\text{ m}}$ *(confident, wide stride)*
   * **Elevation $\Phi$:** $10^\circ \times 1.0 - 20^\circ \times 0.0 = \mathbf{+10^\circ}$ *(lightly upright, breezy posture)*
 
@@ -316,7 +316,7 @@ $$
 * **Temperament Vector $\mathbf{e}_t$:** $(-0.8,\ 0.2)$ *(strongly pushed left by a permanent-taboo repulsive force)*
 * **Results:**
   * **Magnitude:** $\sqrt{(-0.8)^2 + 0.2^2} \approx 0.82$
-  * **Azimuth $\Theta$:** $\operatorname{atan2}(-0.8, 0.2) \approx \mathbf{-76^\circ}$ *(quickly turns body diagonally left)*
+  * **Azimuth $\Theta$:** $\mathrm{atan2}(-0.8, 0.2) \approx \mathbf{-76^\circ}$ *(quickly turns body diagonally left)*
   * **Radius $R$:** $0.50 + 0.15 \times 0.82 \approx \mathbf{0.62\text{ m}}$ *(steps out to evade)*
   * **Elevation $\Phi$:** $10^\circ \times 0.2 - 20^\circ \times 0.8 = 2^\circ - 16^\circ = \mathbf{-14^\circ}$ *(drops hips low into a braced defensive stance)*
 
@@ -324,7 +324,7 @@ $$
 * **Temperament Vector $\mathbf{e}_t$:** $(0.05,\ -0.05)$ *(attractive and repulsive forces cancel out)*
 * **Results:**
   * **Magnitude:** $\sqrt{0.05^2 + (-0.05)^2} \approx 0.07$
-  * **Azimuth $\Theta$:** $\operatorname{atan2}(0.05, -0.05) = \mathbf{+135^\circ}$ *(hesitant angle, glancing slightly back)*
+  * **Azimuth $\Theta$:** $\mathrm{atan2}(0.05, -0.05) = \mathbf{+135^\circ}$ *(hesitant angle, glancing slightly back)*
   * **Radius $R$:** $0.50 + 0.15 \times 0.07 \approx \mathbf{0.51\text{ m}}$ *(compact stance with limbs drawn close)*
   * **Elevation $\Phi$:** $10^\circ \times (-0.05) - 20^\circ \times 0.05 = \mathbf{-1.5^\circ}$ *(halts while slightly lowering center of gravity)*
 
