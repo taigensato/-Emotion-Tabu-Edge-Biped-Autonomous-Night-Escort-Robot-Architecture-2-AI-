@@ -171,7 +171,7 @@ $$ \mathbf{u}_{t} = \sum_{i=1}^{N} \left( \mathbf{w}_{i}(\mathbf{e}_{t}, \mathbf
 * **Dependence on Heuristic Parameters:** The system relies on manually tuned parameters. Incorrect initial values out of sync with physical traits can cause micro-vibrations (chattering).
 * **Taboo Memory Consolidation:** While a hard limit prevents inference crashes, simply discarding old memories is suboptimal. Future updates require a mechanism (e.g., Gaussian Mixture Models) to spatially merge and compress old, adjacent memory points.
 *
-  ####計算例（わかりにくいとコメント頂いたので）
+  #### 計算例（わかりにくいとコメント頂いたので）
 気質ベクトル（$\mathbf{e}_{t}$）から丹田の球座標（$R, \Theta, \Phi$）への変換は、「2次元の心理・進行ベクトル」を「3次元の身体の構え」へ翻訳するプロセスです。
 複雑な行列変換を使わず、大きさ（ノルム）と角度（`atan2`）の基本的な数式だけで、ロボットの「心理状態（気質）」を「人間らしい身体の所作」に直結させることができます。
 
@@ -809,8 +809,8 @@ $$
 * **自己衝突の絶対防止** $R_{\mathrm{inner-min}}$ :
   * いかなる場合も丹田のインナーゾーン閾値 $R_{\mathrm{inner-min}}$ より内側には入らないよう下限をクリップし、自身の胴体へのめり込みを防ぎます。
 
- '''
-  * ## Extended Design: Dual-Layer Masking Model Separating Self-Defense and Interpersonal Contact (Hugging)
+ 
+## Extended Design: Dual-Layer Masking Model Separating Self-Defense and Interpersonal Contact (Hugging)
 
 In conventional single-mask anomaly avoidance, close-contact interactions such as hugging or caregiving cause the robot to misinterpret human contact as a "collision or sign of injury," leading it to pull its arms away.
 To solve this, we extend the original architecture's **"2. Nerves: Dynamic Masking of Local Joints"** and **"Tanden-Origin Spherical Coordinate Model"** by separating the mask into two layers: a **Self-Defense Mask (Hard Limit)** and a **Contact Mask (Soft Limit & Compliance)**.
