@@ -768,7 +768,7 @@ def main():
 
 if __name__ == "__main__":
     main()
-
+'''
 ## 拡張設計：自己防衛と対人接触（抱擁）の分離マスキングモデル
 
 従来の単一マスクによる異常回避では、抱擁（ハグ）や介助などの密着動作時に、相手との接触を「衝突・怪我の予兆」と誤認して腕を引いてしまう問題がありました。
@@ -809,7 +809,7 @@ $$
 * **自己衝突の絶対防止** $R_{\mathrm{inner-min}}$ :
   * いかなる場合も丹田のインナーゾーン閾値 $R_{\mathrm{inner-min}}$ より内側には入らないよう下限をクリップし、自身の胴体へのめり込みを防ぎます。
 
- 
+ '''
   * ## Extended Design: Dual-Layer Masking Model Separating Self-Defense and Interpersonal Contact (Hugging)
 
 In conventional single-mask anomaly avoidance, close-contact interactions such as hugging or caregiving cause the robot to misinterpret human contact as a "collision or sign of injury," leading it to pull its arms away.
