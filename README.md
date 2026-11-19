@@ -876,4 +876,22 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.---
+--------------------------------------------------------------------------------------------
+## 備考：歩行支援などへの応用メモ
 
+本リポジトリはロボット制御の実験として設計したものですが、安価なセンサー（小型LiDARやIMU）、オフラインでの軽量な処理（NumPyのみ）、省電力といった特徴から、将来的には視覚障害のある方の歩行を補助するウェアラブル機器（帽子型など）にも応用できるのではないか、と個人的に考えています。
+
+* 白杖では気づきにくい頭上の障害物などを、安価なセンサーで補えないか
+* 歩幅や歩速に合わせて、現場で少しずつ調整・学習できないか
+* 周囲の音を聞く邪魔にならないよう、音や振動を最小限に抑えられないか
+
+※あくまで構想段階のアイデアであり、白杖や盲導犬に代わるものではありません。もし、安価で電池の持ちが良い支援機器を研究・開発されている大学や企業の方の、何らかの参考になれば幸いです。
+## Note: A Personal Idea on Assistive Applications
+
+While this repository is an experimental robotics project, its core traits—low-cost sensors (compact LiDAR/IMU), lightweight offline processing (NumPy-only), and low power consumption—led me to wonder if a similar approach could eventually help support walking safety for people with visual impairments (e.g., as a cap-mounted wearable).
+
+* Supplementing white canes by detecting overhead obstacles with inexpensive sensors
+* Adapting gradually to an individual's stride and walking speed on-device
+* Minimizing audio output to avoid interfering with essential environmental sounds
+
+This is strictly a rough concept and is not meant to replace white canes or guide dogs. I share this note simply in the hope that it might offer a small hint to researchers, universities, or developers working on affordable, long-battery-life assistive tools.
