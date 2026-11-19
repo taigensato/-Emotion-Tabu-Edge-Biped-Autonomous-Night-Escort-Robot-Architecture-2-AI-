@@ -775,14 +775,18 @@ if __name__ == "__main__":
 そこで、元アーキテクチャの「2. 神経 (Nerves): 局所関節の動的マスキング」および「丹田原点・球座標モデル」を拡張し、**自己防衛マスク（ハードリミット）**と**コンタクトマスク（ソフトリミット＆追従）**の2層に分離します。
 
 ---
-
 ### 1. 神経（Nerves）：2層分離型・動的マスキングの数式
 
-元リポジトリの神経重み更新式（$`w_{i,j}`$）に対し、関節の異常度 $`p_{j,t}`$ に加えて、対人接触圧（優しいタッチの負荷） $`c_{j,t}`$ を独立した変数として導入します。
+元リポジトリの神経重み更新式（$w_{i,j}$）に対し、関節の異常度 $p_{j,t}$ に加えて、対人接触圧（優しいタッチの負荷） $c_{j,t}$ を独立した変数として導入します。
 
-```math
-w_{i,j}(\mathbf{e}_{t}, p_{j,t}, c_{j,t}) = \left(1 - M_{\text{injury}}(p_{j,t})\right) \left[ \mathrm{Softmax}(\mathbf{e}_{t})_{i} \cdot \left(1 - M_{\text{contact}}(c_{j,t})\right) + \delta_{i,\text{hug}} \cdot M_{\text{contact}}(c_{j,t}) \right] + \delta_{i,\text{safe}} \cdot M_{\text{injury}}(p_{j,t})
-```
+$$
+\begin{aligned}
+w_{i,j}(\mathbf{e}_t, p_{j,t}, c_{j,t}) &= \left(1 - M_{\mathrm{injury}}(p_{j,t})\right) \\
+&\quad \times \left[ \mathrm{Softmax}(\mathbf{e}_t)_i \cdot \left(1 - M_{\mathrm{contact}}(c_{j,t})\right) + \delta_{i,\mathrm{hug}} \cdot M_{\mathrm{contact}}(c_{j,t}) \right] \\
+&\quad + \delta_{i,\mathrm{safe}} \cdot M_{\mathrm{injury}}(p_{j,t})
+\end{aligned}
+$$
+
 
 * **自己防衛マスク** $`M_{\text{injury}}(p_{j,t}) \in \lbrace 0, 1 \rbrace`$（最優先・ハードリミット）:
   * モーターの過熱や過電流、構造上の可動限界 $`p_{j,t}`$ が危険閾値を超えた瞬間に $`1`$ となります。
