@@ -799,7 +799,7 @@ $$
 
 ### 2. 丹田球座標（Tanden Spherical Coordinates）：抱擁時の目標半径 $R$ の動的補正
 
-`TinyMLP` が出力する「丹田基準の目標手先半径 $R_{\mathrm{mlp}}$ 」に対し、コンタクトマスクが介入して最終的な目標半径 $R_{\mathrm{target}}$ を決定します。
+`TinyMLP` が出力する「丹田基準の目標手先半径 $R_{\mathrm{mlp}}$ 」に対し、コンタクトマスクが介入して最終的な目標半径*$R_{\mathrm{target}}$ を決定します。
 
 $$
 R_{\mathrm{target}} = \max \left( R_{\mathrm{inner\_min}},\; R_{\mathrm{mlp}} - k_{\mathrm{soft}} \cdot M_{\mathrm{contact}}(c_t) \cdot (c_t - c_{\mathrm{ideal}}) \right)
