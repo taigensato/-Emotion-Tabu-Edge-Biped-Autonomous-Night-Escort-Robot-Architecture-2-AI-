@@ -170,7 +170,8 @@ $$ \mathbf{u}_{t} = \sum_{i=1}^{N} \left( \mathbf{w}_{i}(\mathbf{e}_{t}, \mathbf
 * **Ignoring ZMP & Fall Risk:** Sudden evasive or compensatory movements blend perfectly in math but cause rapid center-of-gravity shifts. If the lower-level hardware (PID/ZMP control) cannot absorb this, the policy shift may trigger a fall.
 * **Dependence on Heuristic Parameters:** The system relies on manually tuned parameters. Incorrect initial values out of sync with physical traits can cause micro-vibrations (chattering).
 * **Taboo Memory Consolidation:** While a hard limit prevents inference crashes, simply discarding old memories is suboptimal. Future updates require a mechanism (e.g., Gaussian Mixture Models) to spatially merge and compress old, adjacent memory points.
-  ###計算例（わかりにくいとコメント頂いたので）
+*
+  ####計算例（わかりにくいとコメント頂いたので）
   気質ベクトル（\(\mathbf{e}_{t}\)）から丹田の球座標（\(R, \Theta, \Phi\)）への変換は、「2次元の心理・進行ベクトル」を「3次元の身体の構え」へ翻訳するプロセスです。
 複雑な行列変換を使わず、大きさ（ノルム）と角度（atan2）の基本的な数式だけで、ロボットの「心理状態（気質）」を「人間らしい身体の所作」に直結させることができます。
 
