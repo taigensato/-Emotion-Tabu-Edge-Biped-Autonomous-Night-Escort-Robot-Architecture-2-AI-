@@ -886,6 +886,8 @@ SOFTWARE.---
 * 周囲の音を聞く邪魔にならないよう、音や振動を最小限に抑えられないか
 
 ※あくまで構想段階のアイデアであり、白杖や盲導犬に代わるものではありません。もし、安価で電池の持ちが良い支援機器を研究・開発されている大学や企業の方の、何らかの参考になれば幸いです。
+[安全基準.pdf](https://github.com/user-attachments/files/35130648/default.pdf)
+
 ## Note: A Personal Idea on Assistive Applications
 
 While this repository is an experimental robotics project, its core traits—low-cost sensors (compact LiDAR/IMU), lightweight offline processing (NumPy-only), and low power consumption—led me to wonder if a similar approach could eventually help support walking safety for people with visual impairments (e.g., as a cap-mounted wearable).
