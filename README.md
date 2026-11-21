@@ -26,7 +26,9 @@ By bridging the bartender droid's conversational brain with a lightweight physic
 
 **核心となるアイデア：** *「会話で成功した『タブーサーチ × 超軽量モデル』の仕組みを、そのまま2足歩行の歩き方（歩容）制御に拡張できないか？」*
 バーテンダーの対話脳と軽量の身体制御エンジンを連動させることで、通りすがりの人に道を尋ね、相手の表情（「それ変ダヨ」という困惑顔）や路面の状況を読み取りながら、リアルタイムに歩き方や態度を変化させる仕組みをこれから実装していきます。
-https://mail.google.com/mail/u/0/?ui=2&ik=3b183201ff&attid=0.1&permmsgid=msg-a:r4293294051901019590&th=1a1fc2467f1f36ba&view=att&disp=safe&realattid=1a1fc2419f04f52b12b2&zw
+<img width="1376" height="768" alt="1000001181" src="https://github.com/user-attachments/assets/04504532-9af1-4eed-9d92-606983ebff06" />
+<img width="1376" height="768" alt="1000001181" src="https://github.com/user-attachments/assets/1b188b74-5974-47c0-9cfb-2f648ce4b0d6" />
+
 # Emotion-Tabu Edge Biped
 
 ## 🇯🇵 日本語版 (Japanese)
@@ -37,6 +39,7 @@ https://mail.google.com/mail/u/0/?ui=2&ik=3b183201ff&attid=0.1&permmsgid=msg-a:r
 本プロジェクトは、高価なGPUや巨大な深層強化学習（DRL）モデルに頼らず、Android端末（Termux）などのエッジデバイス上でミリ秒推論を実現する、自律2足歩行ロボットのための軽量な数理アーキテクチャです。
 「脳（全体の方針）」「神経（局所の異常管理）」「筋肉（運動実行）」の3層構造を人工ポテンシャル場とベクトル演算のみで統合し、対話しながらの自律帰還、歩幅の動的学習、痛みをかばう代償動作、そして「絶対に過ちを繰り返さない」防衛本能をプログラムの複雑な分岐なしで実現します。
 （※注: ロボットの物理的なバランス維持やZMP補償は、下位のハードウェア制御に依存する役割分担を前提としています）
+<img width="1376" height="768" alt="1000001181" src="https://github.com/user-attachments/assets/d02210b4-d969-4bd1-999a-ea45b30a36a9" />
 
 #### 主要なシステム機能
 * **対話を通じた自律帰還:** 音声コマンド（「帰ろう」など）を受信すると目的地をセットし、「一緒にお家に帰りましょう」と対話しながら、道中の障害物を自律的に迂回・回避して目的地へ向かいます。
