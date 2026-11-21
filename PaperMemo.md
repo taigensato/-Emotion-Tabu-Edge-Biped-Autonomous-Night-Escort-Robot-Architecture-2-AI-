@@ -115,6 +115,7 @@ $$R_{\text{target}} = \max \left( R_{\text{inner-min}},\ R_{\text{mlp}} - k_{\te
 $$\mathbf{u}_{t} = \sum_{i=1}^{N} \left( \mathbf{w}_{i}(\mathbf{e}_{t}, \mathbf{p}_{t}, \mathbf{c}_{t}) \circ \pi_{i}(\mathbf{s}_{t}) \right)$$
 
 末端リンク（肩・肘など）は余弦定理などの幾何学制約で瞬時に解かれるため、TinyMLPは極めて低次元のパラメータ微調整のみを担えばよく、モバイルCPU上でミリ秒単位の推論を実現する。
+
 丹田球座標変換の数値シミュレーション例：基準姿勢を $R_0 = 0.50\text{ m}$、$\Theta_0 = 0^\circ$、$\Phi_0 = 0^\circ$、各係数を $k_R = 0.15$（$R \in [0.30, 0.70]$）、$k_{\text{fwd}} = 10^\circ$、$k_{\text{lat}} = 20^\circ$ としたときの代表的な3シーンにおける変換結果を以下に示す。シーンA（夜道をまっすぐエスコート中）： $\mathbf{e}_t = (0.0,\ 1.0)$$\Vert{}\mathbf{e}_t\Vert{} = 1.0$ に対し、$\Theta = 0^\circ$、$R = 0.65\text{ m}$、$\Phi = +10^\circ$。正面を向き、堂々とした歩幅で軽く背筋を伸ばした姿勢となる。シーンB（右からの自転車接近に対する左への回避）： $\mathbf{e}_t = (-0.8,\ 0.2)$$\Vert{}\mathbf{e}_t\Vert{} \approx 0.82$ に対し、$\Theta \approx -76^\circ$、$R \approx 0.62\text{ m}$、$\Phi = -14^\circ$。左斜めへ素早く体を向けつつ、腰を低く落として踏ん張る防衛姿勢へ自動移行する。シーンC（障害物に囲まれたスタック状態）： $\mathbf{e}_t = (0.05,\ -0.05)$$\Vert{}\mathbf{e}_t\Vert{} \approx 0.07$ に対し、$\Theta = +135^\circ$、$R \approx 0.51\text{ m}$、$\Phi = -1.5^\circ$。手足を体元に引き寄せ、わずかに重心を落として立ち止まる控えめな構えに収束する。このように、すべてが連続的な三角関数と一次式、および clip による上下限監視で結ばれているため、極端な斥力が発生しても関節の急変や破綻が起きず、人間らしい防御・待機姿勢へ自然に収束する。
 ---
 
