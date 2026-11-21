@@ -26,7 +26,7 @@ By bridging the bartender droid's conversational brain with a lightweight physic
 
 **核心となるアイデア：** *「会話で成功した『タブーサーチ × 超軽量モデル』の仕組みを、そのまま2足歩行の歩き方（歩容）制御に拡張できないか？」*
 バーテンダーの対話脳と軽量の身体制御エンジンを連動させることで、通りすがりの人に道を尋ね、相手の表情（「それ変ダヨ」という困惑顔）や路面の状況を読み取りながら、リアルタイムに歩き方や態度を変化させる仕組みをこれから実装していきます。
-
+https://mail.google.com/mail/u/0/?ui=2&ik=3b183201ff&attid=0.1&permmsgid=msg-a:r4293294051901019590&th=1a1fc2467f1f36ba&view=att&disp=safe&realattid=1a1fc2419f04f52b12b2&zw
 # Emotion-Tabu Edge Biped
 
 ## 🇯🇵 日本語版 (Japanese)
